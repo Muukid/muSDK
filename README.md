@@ -43,8 +43,8 @@ All mu libraries included in muSDK have name functions to convert some of their 
 
 ## muGraphics
 
-muSDK has support for muGraphics ([commit a0b9746](https://github.com/Muukid/muGraphics/tree/a0b9746f02c5c615777f7514ec2f7fd71ca62068)). The macro to define it is `MUSDK_MUG`.
+muSDK has support for muGraphics ([commit e9b01a4](https://github.com/Muukid/muGraphics/tree/e9b01a4db2ac6067355394910a7bc8495682514e)). The macro to define it is `MUSDK_MUG`.
 
 ## muTrueType
 
-muSDK has support for muTrueType ([commit f530d14](https://github.com/Muukid/muTrueType/tree/f530d14be2199adbef1324b08a3b830c7ee67275)). The macro to define it is `MUSDK_MUTT`.
+muSDK has support for muTrueType ([commit f75d153](https://github.com/Muukid/muTrueType/tree/f75d153134eea147105b9de27dba475ddeb0866d)). The macro to define it is `MUSDK_MUTT`.

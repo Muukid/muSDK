@@ -59,7 +59,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 	#define MUSDK_H
 
 	// @DOCLINE ## muGraphics
-	// @DOCLINE muSDK has support for muGraphics ([commit a0b9746](https://github.com/Muukid/muGraphics/tree/a0b9746f02c5c615777f7514ec2f7fd71ca62068)). The macro to define it is `MUSDK_MUG`.
+	// @DOCLINE muSDK has support for muGraphics ([commit e9b01a4](https://github.com/Muukid/muGraphics/tree/e9b01a4db2ac6067355394910a7bc8495682514e)). The macro to define it is `MUSDK_MUG`.
 	// @IGNORE
 	#ifdef MUSDK_MUG
 		// Names
@@ -2265,8 +2265,11 @@ All mu libraries included in muSDK have name functions to convert some of their 
 					// @DOCLINE * `MUG_OBJECT_TEXTURE_2D` - a [two-dimensional texture rect](#2d-texture-rect).
 					#define MUG_OBJECT_TEXTURE_2D 8
 
+					// @DOCLINE * `MUG_OBJECT_TEXTURE_2D_ARRAY` - a [two-dimensional texture array rect](#2d-texture-array-rect).
+					#define MUG_OBJECT_TEXTURE_2D_ARRAY 9
+
 					#define MUG_OBJECT_FIRST MUG_OBJECT_POINT
-					#define MUG_OBJECT_LAST MUG_OBJECT_TEXTURE_2D
+					#define MUG_OBJECT_LAST MUG_OBJECT_TEXTURE_2D_ARRAY
 
 				// @DOCLINE ## Load object type
 
@@ -2424,7 +2427,27 @@ All mu libraries included in muSDK have name functions to convert some of their 
 					};
 					typedef struct mug2DTextureRect mug2DTextureRect;
 
-					// @DOCLINE The texture that gets rendered onto the rect is the [buffer's texture](#object-buffer-texture).
+					// @DOCLINE The texture that gets rendered onto the rect is the [buffer's texture](#object-buffer-texture). The type of the texture must be `MUG_TEXTURE_2D`.
+
+				// @DOCLINE ## 2D texture array rect
+
+					// @DOCLINE A "2D texture array rect" in mug is a rect texture object, acting as a rect with a two-dimension texture array rendered over it. Its respective struct is `mug2DTextureArrayRect`, and has the following members:
+
+					struct mug2DTextureArrayRect {
+						// @DOCLINE * `@NLFT center` - the center of the rect. The point's color determines the color of the rect, which is multiplied with the color values of the texture.
+						mugPoint center;
+						// @DOCLINE * `@NLFT dim[2]` - the dimensions of the rect, in width (`dim[0]`) and height (`dim[1]`).
+						float dim[2];
+						// @DOCLINE * `@NLFT rot` - the rotation of the rect around the center point, in radians.
+						float rot;
+						// @DOCLINE * `@NLFT tex_pos[3]` - the position of the [texture cutout](#texture-cutout).
+						float tex_pos[3];
+						// @DOCLINE * `@NLFT tex_dim[2]` - the dimensions of the [texture cutout](#texture-cutout).
+						float tex_dim[2];
+					};
+					typedef struct mug2DTextureArrayRect mug2DTextureArrayRect;
+
+					// @DOCLINE The texture that gets rendered onto the rect is the [buffer's texture](#object-buffer-texture). The type of the texture must be `MUG_TEXTURE_2D_ARRAY`.
 
 			// @DOCLINE # Object buffers
 
@@ -2524,12 +2547,12 @@ All mu libraries included in muSDK have name functions to convert some of their 
 					// @DOCLINE * `MUG_TEXTURE_2D` - a two-dimensional texture.
 					#define MUG_TEXTURE_2D 0
 
-					// @DOCLINE * `MUG_TEXTURE_3D` - a three-dimensional texture.
-					#define MUG_TEXTURE_3D 1
+					// @DOCLINE * `MUG_TEXTURE_2D_ARRAY` - a two-dimensional texture array.
+					#define MUG_TEXTURE_2D_ARRAY 1
 
 					// @DOCLINE All types expect pixel data ordered left-to-right and top-to-bottom. All textures that have more than two dimensions are ordered starting from layer 0 incrementally.
 
-					// @DOCLINE Three-dimensional textures act as multiple 2D textures stored one after the other, with the first one specified being referenced as layer 0.
+					// @DOCLINE Texture arrays act as multiple 2D textures stored one after the other, with the first one specified being referenced as layer/depth 0.
 
 				// @DOCLINE ## Texture format
 
@@ -2590,18 +2613,20 @@ All mu libraries included in muSDK have name functions to convert some of their 
 
 					// @DOCLINE When a texture is rendered onto a rect, exactly what part of the texture is being mapped needs to be specified, which is detailed in the form of a "cutout". The cutout takes a portion of the texture and renders only that portion of the texture over the rect. The texture cutout is specified in texture coordinates, ranging from a top-left origin of (0,0) to bottom-right (1, 1). The cutout itself is defined by a *position* and *dimensions*.
 
-					// @DOCLINE The position is made up of an x-, y-, and z-coordinate. The x- and y-coordinates specify the top-leftest point of the cutout in texture coordinates. The z-coordinate specifies which layer of the texture to render from, and is only used in three-dimensional textures.
+					// @DOCLINE The position is made up of an x-, y-, and sometimes a z-coordinate. The x- and y-coordinates specify the top-leftest point of the cutout in texture coordinates. The z-coordinate is only relevant (and respectively defined) if the texture is a texture array, in which case the z-coordinate specifies the index into the texture array to render.
 
 					// @DOCLINE The dimensions are made up of a width and height value, which specify how far the texture cutout reaches from the position in texture coordinates. Negative values will work, and will flip the texture's appearance correspondingly.
 
-					// @DOCLINE Any cutout that will result in the rendering of texture coordinates outside of the valid texture coordinates range ([0,0], [1,1]) will cause wrapping, to which behavior is defined by the [texture wrapping](#texture-wrapping) of the texture currently being rendered.
+					// @DOCLINE Any cutout that will result in the rendering of texture coordinates outside of the valid texture coordinates range ([0,0], [1,1]) will cause wrapping, to which behavior is defined by the [texture wrapping](#texture-wrapping) of the texture currently being rendered. Any z-coordinate values for texture arrays that aren't a perfect integer value or who are out of range in the texture array's depth
 
 				// @DOCLINE ## Texture creation
 
 					// @DOCLINE To create a handle to the texture for rendering, the function `mug_gtexture_create` is used, defined below: @NLNT
 					MUDEF mugTexture mug_gtexture_create(mugContext* context, mugResult* result, muGraphic gfx, mugTextureInfo* info, uint32_m* dim, muByte* data);
 
-					// @DOCLINE `dim`'s length is dictated by the dimensions of the format used for the texture (specified in `info`). For example, if the texture is two-dimensional, `dim` is expected to be an array of 2 values, but if the texture is three-dimensional, `dim` is expected to be an array of 3 values.
+					// @DOCLINE `dim`'s length is dictated by the dimensions of the format used for the texture (specified in `info`). For example, if the texture is `MUG_TEXTURE_2D`, `dim` is expected to be an array of 2 values, but if the texture is `MUG_TEXTURE_2D_ARRAY`, `dim` is expected to be an array of 3 values, with `dim[2]` corresponding to the depth of the texture array (AKA the texture array length).
+
+					// @DOCLINE The texture width and height's minimum supported value is 2048. The texture depth's minimum supported value is 256.
 
 					// @DOCLINE Once this function is finished, the pointer to the data (`data`) is no longer held onto.
 
@@ -2618,6 +2643,44 @@ All mu libraries included in muSDK have name functions to convert some of their 
 
 					// @DOCLINE > The macro `mu_gtexture_destroy` is the non-result-checking equivalent.
 					#define mu_gtexture_destroy(...) mug_gtexture_destroy(mug_global_context, __VA_ARGS__)
+
+			// @DOCLINE # Min/Max supported values
+
+				// @DOCLINE mug has several minimums and maximums in regards to several values, such as a texture's width and height. mug's [minimum values](#minimum-supported-values) are constants that are guaranteed to be supported on any system that runs mug successfully. mug's [maximum values](#maximum-supported-values) can differ from device to device, and are retrieved at runtime.
+
+				// @DOCLINE ## Minimum supported values
+
+					// @DOCLINE mug defines several macros for minimum values for various parts of mug. If mug is running successfully, these minimums are guaranteed for the system.
+
+					// @DOCLINE ### Texture minimum supported values
+
+						// @DOCLINE The following macros for minimum values regarding textures are defined:
+
+						// @DOCLINE * `MUG_MIN_TEXTURE_WIDTH_HEIGHT` - the minimum texture width and height. This value is 1024.
+						#define MUG_MIN_TEXTURE_WIDTH_HEIGHT 1024
+
+						// @DOCLINE * `MUG_MIN_TEXTURE_DEPTH` - the minimum texture depth (for texture arrays). This value is 256.
+						#define MUG_MIN_TEXTURE_DEPTH 256
+
+				// @DOCLINE ## Maximum supported values
+
+					typedef uint16_m mugMax;
+
+					// @DOCLINE mug is able to retrieve maximum values for the current device using the function `mug_max`, defined below: @NLNT
+					MUDEF uint32_m mug_max(mugContext* context, muGraphic gfx, mugMax max);
+
+					// @DOCLINE `max` is a value specifying what maximum is being requested; values for the type `mugMax` are defined below. If `max` is an unrecognized value, 0 is returned.
+
+				// @DOCLINE ### Texture maximum supported values
+					// 1 -> 512
+
+					// @DOCLINE The following macros for maximum values (for the type `mugMax`) regarding textures are defined:
+
+					// @DOCLINE * `MUG_MAX_TEXTURE_WIDTH_HEIGHT` - the maximum texture width and height.
+					#define MUG_MAX_TEXTURE_WIDTH_HEIGHT 1
+
+					// @DOCLINE * `MUG_MAX_TEXTURE_DEPTH` - the maximum texture depth (for texture arrays).
+					#define MUG_MAX_TEXTURE_DEPTH 2
 
 			// @DOCLINE # Result
 
@@ -2764,7 +2827,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 	// @ATTENTION
 
 	// @DOCLINE ## muTrueType
-	// @DOCLINE muSDK has support for muTrueType ([commit f530d14](https://github.com/Muukid/muTrueType/tree/f530d14be2199adbef1324b08a3b830c7ee67275)). The macro to define it is `MUSDK_MUTT`.
+	// @DOCLINE muSDK has support for muTrueType ([commit f75d153](https://github.com/Muukid/muTrueType/tree/f75d153134eea147105b9de27dba475ddeb0866d)). The macro to define it is `MUSDK_MUTT`.
 	// @IGNORE
 	#ifdef MUSDK_MUTT
 		// Names
@@ -4047,6 +4110,13 @@ All mu libraries included in muSDK have name functions to convert some of their 
 								// @DOCLINE The maximum amount of memory that will be needed for loading a simple glyph, in bytes, is provided by the function `mutt_simple_glyph_max_size`, defined below: @NLNT
 								MUDEF uint32_m mutt_simple_glyph_max_size(muttFont* font);
 
+							// @DOCLINE #### Simple glyph min/max
+
+								// @DOCLINE The minimum/maximum x/y ranges for a simple glyph can be calculated using the function `mutt_simple_glyph_min_max`, defined below: @NLNT
+								MUDEF muttResult mutt_simple_glyph_min_max(muttFont* font, muttGlyphHeader* header);
+
+								// @DOCLINE The values `x_min`, `y_min`, `x_max`, and `y_max` are filled in for `header` upon a non-fatal result. The given glyph must have at least one contour.
+
 							// @DOCLINE #### Simple glyph point count
 
 								// @DOCLINE Getting just the amount of points within a simple glyph based on its header is a fairly cheap operation, requiring no manual allocation. The function `mutt_simple_glyph_points` calculates the amount of points that a simple glyph contains, defined below: @NLNT
@@ -4140,6 +4210,15 @@ All mu libraries included in muSDK have name functions to convert some of their 
 
 								// @DOCLINE The maximum amount of memory that will be needed for loading a composite glyph, in bytes, is provided by the function `mutt_composite_glyph_max_size`, defined below: @NLNT
 								MUDEF uint32_m mutt_composite_glyph_max_size(muttFont* font);
+
+							// @DOCLINE #### Composite min max
+
+								// @DOCLINE The minimum/maximum x/y ranges for a composite glyph can be calculated using the function `mutt_composite_glyph_min_max`, defined below: @NLNT
+								MUDEF muttResult mutt_composite_glyph_min_max(muttFont* font, muttGlyphHeader* header);
+
+								// @DOCLINE The values `x_min`, `y_min`, `x_max`, and `y_max` are filled in for `header` upon a non-fatal result. The given glyph must have at least one contour.
+
+								// @DOCLINE Since composite glyphs allow for non-integer coordinates, the coordinates filled in are the ceiling equivalents.
 
 							// @DOCLINE #### Composite glyph component retrieval
 
@@ -4907,7 +4986,17 @@ All mu libraries included in muSDK have name functions to convert some of their 
 							float x_max;
 							// @DOCLINE * `@NLFT y_max` - the greatest y-coordinate value of any point within the glyph.
 							float y_max;
+							// @DOCLINE * `@NLFT ascender` - the ascender value for the given glyph, retrieved from the hhea table. This is only relevant for glyphs converted from TrueType glyphs to rglyphs.
+							float ascender;
+							// @DOCLINE * `@NLFT descender` - the descender value for the given glyph, retrieved from the hhea table. This is only relevant for glyphs converted from TrueType glyphs to rglyphs.
+							float descender;
+							// @DOCLINE * `@NLFT lsb` - the left-side bearing for the given glyph, retrieved from the hmtx table. This is only relevant for glyphs converted from TrueType glyphs to rglyphs.
+							float lsb;
+							// @DOCLINE * `@NLFT advance_width` - the advance width for the given glyph, retrieved from the hmtx table. This is only relevant for glyphs converted from TrueType glyphs to rglyphs.
+							float advance_width;
 						};
+
+						// @DOCLINE Values for the rglyph's ascender, descender, left-side bearing, and advance width are given due to the fact that the coordinates of a TrueType glyph are transformed upon being converted to an rglyph, making these values difficult for the user to retrieve for rglyphs. They are *not* filled in upon conversion of a TrueType glyph to an rglyph; these values are filled in with the function [`mutt_rglyph_metrics`](#truetype-metrics-to-rglyph-metrics).
 
 						// @DOCLINE A point in an rglyph is represented with the struct `muttRPoint`, which has the following members:
 						struct muttRPoint {
@@ -5092,6 +5181,24 @@ All mu libraries included in muSDK have name functions to convert some of their 
 
 							// @DOCLINE This function rather returns (the sum of `mutt_simple_glyph_max_size` and `mutt_simple_rglyph_max`) or (the sum of `mutt_composite_glyph_max_size` and `mutt_composite_rglyph_max`), whichever is greater. All the table loading requirements of these functions apply.
 
+					// @DOCLINE ### TrueType metrics to rglyph metrics
+
+						// @DOCLINE The function `mutt_rglyph_metrics` fills in the metric information about a TrueType-to-rglyph conversion, converting the TrueType glyph's metrics to the pixel-unit equivalents for the rglyph, defined below: @NLNT
+						MUDEF void mutt_rglyph_metrics(muttFont* font, muttGlyphHeader* header, uint16_m glyph_id, muttRGlyph* rglyph, float point_size, float ppi);
+
+						// @DOCLINE The values `rglyph->ascender`, `rglyph->descender`, `rglyph->lsb`, and `rglyph->advance_width` are filled in. `glyph_id` must be a valid glyph ID. The x/y min/max values within `header` must be accurate.
+
+					// @DOCLINE ### TrueType x/y min/max to rglyph x/y max
+
+						// @DOCLINE The function `mutt_funits_punits_min_max` converts a set of x/y min/max values, in FUnits (usually retrieved from loading a simple/composite glyph, with said values being stored in the header), to what an rglyph's x/y maximum values will be when converting it to an rglyph, defined below: @NLNT
+						MUDEF void mutt_funits_punits_min_max(muttFont* font, muttGlyphHeader* header, muttRGlyph* rglyph, float point_size, float ppi);
+
+						// @DOCLINE This function takes in the x/y min/max values from `header` and converts them to valid x/y max values within `rglyph`. Note that this function implicitly assumes that the given x/y min/max values are valid for the glyph, which may not be the case in a few scenarios:
+
+						// @DOCLINE * If only the header has been loaded, and not the corresponding simple/composite glyph, the x/y min/max values within the header are only what the font has provided, and may not be fully accurate.
+
+						// @DOCLINE * If the glyph is composite and it has been loaded, both in header form and in `muttCompositeGlyph` form, the x/y min/max values still haven't been validated, since `mutt_composite_glyph` does not check coordinate values; the assuredly correct x/y min/max values for a composite glyph can be retrieved with the function [`mutt_composite_glyph_min_max`](#composite-min-max).
+
 			// @DOCLINE # Result
 
 				// @DOCLINE The type `muttResult` (typedef for `uint32_m`) is defined to represent how a task went. Result values can be "fatal" (meaning that the task completely failed to execute, and the program will continue as if the task had never been attempted), "non-fatal" (meaning that the task partially failed, but was still able to complete the task), and "successful" (meaning that the task fully succeeded).
@@ -5266,6 +5373,15 @@ All mu libraries included in muSDK have name functions to convert some of their 
 					// @DOCLINE * `MUTT_INVALID_GLYF_COMPOSITE_FLAGS` - the flags in a component within the composite glyph were invalid (multiple mutually exclusive transform data flags were set).
 					#define MUTT_INVALID_GLYF_COMPOSITE_FLAGS 530
 
+					// @DOCLINE * `MUTT_INVALID_GLYF_SIMPLE_X_COORD_FUNITS` - an x-coordinate within the simple glyph was out of the font-unit range.
+					#define MUTT_INVALID_GLYF_SIMPLE_X_COORD_FUNITS 531
+					// @DOCLINE * `MUTT_INVALID_GLYF_SIMPLE_Y_COORD_FUNITS` - a y-coordinate within the simple glyph was out of the font-unit range.
+					#define MUTT_INVALID_GLYF_SIMPLE_Y_COORD_FUNITS 532
+					// @DOCLINE * `MUTT_INVALID_GLYF_COMPOSITE_X_COORD_FUNITS` - an x-coordinate within the composite glyph was out of the font-unit range. This check is only performed when converting a composite glyph to an rglyph or calculating the x/y min/max range of a composite glyph.
+					#define MUTT_INVALID_GLYF_COMPOSITE_X_COORD_FUNITS 533
+					// @DOCLINE * `MUTT_INVALID_GLYF_COMPOSITE_Y_COORD_FUNITS` - a y-coordinate within the composite glyph was out of the font-unit range. This check is only performed when converting a composite glyph to an rglyph or calculating the x/y min/max range of a composite glyph.
+					#define MUTT_INVALID_GLYF_COMPOSITE_Y_COORD_FUNITS 534
+
 				// @DOCLINE ### Cmap result values
 				// 576 -> 639 //
 
@@ -5404,7 +5520,8 @@ All mu libraries included in muSDK have name functions to convert some of their 
 				#endif /* string.h */
 
 				#if !defined(mu_fabsf) || \
-					!defined(mu_roundf)
+					!defined(mu_roundf) || \
+					!defined(mu_ceilf)
 
 					// @DOCLINE ## `math.h` dependencies
 					#include <math.h>
@@ -5417,6 +5534,11 @@ All mu libraries included in muSDK have name functions to convert some of their 
 					// @DOCLINE * `mu_roundf` - equivalent to `roundf`.
 					#ifndef mu_roundf
 						#define mu_roundf roundf
+					#endif
+
+					// @DOCLINE * `mu_ceilf` - equivalent to `ceilf`.
+					#ifndef mu_ceilf
+						#define mu_ceilf ceilf
 					#endif
 
 				#endif /* math.h */
@@ -5432,7 +5554,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 #ifdef MUSDK_IMPLEMENTATION
 
 	// mug
-	// https://github.com/Muukid/muGraphics/tree/a0b9746f02c5c615777f7514ec2f7fd71ca62068
+	// https://github.com/Muukid/muGraphics/tree/e9b01a4db2ac6067355394910a7bc8495682514e
 	#ifdef MUSDK_MUG
 	#define MUG_IMPLEMENTATION
 
@@ -12653,7 +12775,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 						switch (type) {
 							default: return GL_TEXTURE_2D; break;
 							case MUG_TEXTURE_2D: return GL_TEXTURE_2D; break;
-							case MUG_TEXTURE_3D: return GL_TEXTURE_3D; break;
+							case MUG_TEXTURE_2D_ARRAY: return GL_TEXTURE_2D_ARRAY; break;
 						}
 					}
 
@@ -12707,6 +12829,8 @@ All mu libraries included in muSDK have name functions to convert some of their 
 				typedef struct mugGL_Texture mugGL_Texture;
 
 				// Creates a texture
+				// 2D: dim[2]
+				// 2D-array: dim[3]
 				mugGL_Texture* mugGL_texture_create(mugResult* result, mugTextureInfo* info, uint32_m* dim, muByte* data) {
 					// Allocate the texture container
 					mugGL_Texture* tex = (mugGL_Texture*)mu_malloc(sizeof(mugGL_Texture));
@@ -12747,9 +12871,20 @@ All mu libraries included in muSDK have name functions to convert some of their 
 								(const void*)data
 							);
 						} break;
+						// 2D array
+						case MUG_TEXTURE_2D_ARRAY: {
+							GLenum format = mugGL_texture_format_format(info->format);
+							glTexImage3D(
+								GL_TEXTURE_2D_ARRAY, 0,
+								format, dim[0], dim[1], dim[2], 0, format,
+								mugGL_texture_format_type(info->format),
+								(const void*)data
+							);
+						} break;
 					}
 
 					// Don't generate mipmap for now
+					// Wouldn't this cause issues with 2D texture arrays?
 					// glGenerateMipmap(tex->target);
 
 					return tex;
@@ -13437,7 +13572,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 						}
 
 						// Fill index data
-						// Circles, squircles, round rects, textures also use this
+						// Circles, squircles, round rects, textures, texture arrays also use this
 						void mugGL_rects_fill_indexes(GLuint* i, uint32_m c) {
 							// Offset for index pattern:
 							uint32_m po = 0;
@@ -13461,7 +13596,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 						#define mugGL_rects_desc mugGL_points_desc
 
 						// Renders rects
-						// Circles, squircles, round rects, textures also use this
+						// Circles, squircles, round rects, textures, texture arrays also use this
 						void mugGL_rects_render(mugGL_ObjBuffer* buf) {
 							// Draw elements
 							glDrawElements(
@@ -13473,7 +13608,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 						}
 
 						// Subrenders rects
-						// Circles, squircles, round rects, textures also use this
+						// Circles, squircles, round rects, textures, texture arrays also use this
 						void mugGL_rects_subrender(uint32_m o, uint32_m c) {
 							// Draw elements
 							glDrawElements(
@@ -14376,6 +14511,200 @@ All mu libraries included in muSDK have name functions to convert some of their 
 							buf->subrender = mugGL_2Dtextures_subrender;
 						}
 
+				/* 2D texture array */
+
+					// Data format: { vec3 pos, vec4 col, vec3 tex }
+					// Indexed data: { 0, 1, 3, 1, 2, 3 }
+
+					/* Shaders */
+
+						// Vertex shader
+						const char* mugGL_2DtexturearrVS = 
+							// Version
+							"#version 330 core\n"
+
+							// Input { vec3 pos, vec4 col, vec3 tex }
+							"layout(location=0)in vec3 vPos;"
+							"layout(location=1)in vec4 vCol;"
+							"layout(location=2)in vec3 vTex;"
+
+							// Output {vec4 col, vec3 tex }
+							"out vec4 fCol;"
+							"out vec3 fTex;"
+
+							// Dimensions of graphic divided by 2
+							"uniform vec2 d;"
+							// Modifiers
+							"uniform vec3 aP;" // addPos
+							"uniform vec3 mP;" // mulPos
+
+							// Main
+							"void main(){"
+								// Set position
+								"gl_Position=vec4("
+									// X
+									"(((vPos.x*mP.x)+aP.x)-(d.x))/d.x,"
+									// Y
+									"-(((vPos.y*mP.y)+aP.y)-(d.y))/d.y,"
+									// Z
+									"(vPos.z*mP.z)+aP.z,"
+									// W
+									"1.0"
+								");"
+
+								// Transfer to fragment
+								"fCol=vCol;"
+								"fTex=vTex;"
+							"}"
+						;
+
+						// Fragment shader
+						const char* mugGL_2DtexturearrFS = 
+							// Version
+							"#version 330 core\n"
+
+							// Input { vec4 col, vec3 tex }
+							"in vec4 fCol;"
+							"in vec3 fTex;"
+							// Output { vec4 col }
+							"out vec4 oCol;"
+
+							// Sampler
+							"uniform sampler2DArray tex;"
+							// Modifiers
+							"uniform vec4 aC;" // addCol
+							"uniform vec4 mC;" // mulCol
+
+							// Main
+							"void main(){"
+								// Set color
+								"oCol=((fCol*texture(tex, fTex))*mC)+aC;"
+							"}"
+						;
+
+						// Creates program for 2D texture arrays
+						void mugGL_2Dtexturearr_shader_load(mug_Graphic* gfx, mugGL_Shader* shader, mugResult* result) {
+							// Exit if shader already compiled
+							if (shader->program) {
+								return;
+							}
+
+							// Compile shader
+							mugResult res = mugGL_shader_create_vf(gfx, shader, mugGL_2DtexturearrVS, mugGL_2DtexturearrFS);
+							if (res != MUG_SUCCESS) {
+								MU_SET_RESULT(result, res)
+							}
+						}
+
+					/* Buffer */
+
+						// Fills a particular vertex given what to multiply dimensions by
+						// (Used to alternate between 4 corners)
+						// Returns new v pointer
+						// This code is considerably similar to mugGL_2Dtextures_fill_invertexes
+						static inline GLfloat* mugGL_2Dtexturearr_fill_invertexes(
+							// Rect data
+							GLfloat* v, mug2DTextureArrayRect* rect,
+							// Half-dim and vector dim
+							float hdim[2], float vdim0, float vdim1,
+							// Center and half-dim of texture cutout
+							float ctex[2], float htdim[2],
+							// Sin/Cos rotation
+							float srot, float crot
+						) {
+							// vec3 pos
+							// - x and y
+							mugMath_rot_point_point(
+								rect->center.pos[0]+(hdim[0]*vdim0), // Point x
+								rect->center.pos[1]+(hdim[1]*vdim1), // Point y
+								rect->center.pos[0], // Center x
+								rect->center.pos[1], // Center y
+								srot, crot, // Sin/Cos rotation
+								v
+							);
+							// - z
+							v[2] = rect->center.pos[2];
+
+							// vec4 col
+							mu_memcpy(&v[3], rect->center.col, 16);
+							// vec3 tex
+							v[7] = ctex[0]+(htdim[0]*vdim0);
+							v[8] = ctex[1]+(htdim[1]*vdim1);
+							v[9] = rect->tex_pos[2];
+							return v+10;
+						}
+
+						// Fills vertex data
+						void mugGL_2Dtexturearr_fill_vertexes(GLfloat* v, void* obj, uint32_m c) {
+							// Convert obj to struct array
+							mug2DTextureArrayRect* rects = (mug2DTextureArrayRect*)obj;
+
+							// Loop through each rect
+							for (uint32_m i = 0; i < c; ++i) {
+								// Store half-dim
+								float hdim[2] = { rects->dim[0]/2.f, rects->dim[1]/2.f };
+								// Store sin/cos of rotation
+								// Sin is negative because y-direction is flipped in mug coordinates
+								float srot = -mu_sinf(rects->rot);
+								float crot =  mu_cosf(rects->rot);
+								// Half-texture dim
+								float htdim[2] = { rects->tex_dim[0]/2.f, rects->tex_dim[1]/2.f };
+								// Center of texture cutout
+								float ctex[2] = { rects->tex_pos[0]+htdim[0], rects->tex_pos[1]+htdim[1] };
+
+								// Top-left
+								v = mugGL_2Dtexturearr_fill_invertexes(v, rects  , hdim, -1.f, -1.f, ctex, htdim, srot, crot);
+								// Bottom-left
+								v = mugGL_2Dtexturearr_fill_invertexes(v, rects  , hdim, -1.f,  1.f, ctex, htdim, srot, crot);
+								// Bottom-right
+								v = mugGL_2Dtexturearr_fill_invertexes(v, rects  , hdim,  1.f,  1.f, ctex, htdim, srot, crot);
+								// Top-right
+								v = mugGL_2Dtexturearr_fill_invertexes(v, rects++, hdim,  1.f, -1.f, ctex, htdim, srot, crot);
+							}
+						}
+
+						// Fills index data (same as rect)
+						#define mugGL_2Dtexturearr_fill_indexes mugGL_rects_fill_indexes
+
+						// Describes data
+						void mugGL_2Dtexturearr_desc(void) {
+							// vec3 pos
+							glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 40, 0);
+							glEnableVertexAttribArray(0);
+							// vec4 col
+							glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 40, (void*)(12));
+							glEnableVertexAttribArray(1);
+							// vec3 tex
+							glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 40, (void*)(28));
+							glEnableVertexAttribArray(2);
+						}
+
+						// Renders data (same as rects)
+						#define mugGL_2Dtexturearr_render mugGL_rects_render
+						// Subrenders data (same as rects)
+						#define mugGL_2Dtexturearr_subrender mugGL_rects_subrender
+
+						// Fills buffer with needed info
+						void mugGL_2Dtexturearr_fill(mugGL_ObjBuffer* buf) {
+							buf->obj_type = MUG_OBJECT_TEXTURE_2D_ARRAY;
+
+							// Amount of bytes used on vertex per object:
+							// one vertex = vec3+vec4+vec3 (40)
+							// one rect = four vertexes (160)
+							buf->bv_per_obj = 160;
+
+							// Amount of bytes used on index per object:
+							// one rect = six indexes (24)
+							buf->bi_per_obj = 24;
+
+							// Function equivalents
+							buf->fill_vertexes = mugGL_2Dtexturearr_fill_vertexes;
+							buf->fill_indexes = mugGL_2Dtexturearr_fill_indexes;
+							buf->desc = mugGL_2Dtexturearr_desc;
+							buf->render = mugGL_2Dtexturearr_render;
+							buf->subrender = mugGL_2Dtexturearr_subrender;
+						}
+
 			/* Context setup */
 
 				// Struct for shaders
@@ -14388,6 +14717,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 					mugGL_Shader squircle;
 					mugGL_Shader roundrect;
 					mugGL_Shader textures2D;
+					mugGL_Shader texturearrays2D;
 				};
 				typedef struct mugGL_Shaders mugGL_Shaders;
 
@@ -14482,6 +14812,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 							case MUG_OBJECT_SQUIRCLE: return &context->shaders.squircle; break;
 							case MUG_OBJECT_ROUND_RECT: return &context->shaders.roundrect; break;
 							case MUG_OBJECT_TEXTURE_2D: return &context->shaders.textures2D; break;
+							case MUG_OBJECT_TEXTURE_2D_ARRAY: return &context->shaders.texturearrays2D; break;
 						}
 					}
 
@@ -14529,6 +14860,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 							case MUG_OBJECT_SQUIRCLE: mugGL_squircles_shader_load(gfx, &context->shaders.squircle, result); break;
 							case MUG_OBJECT_ROUND_RECT: mugGL_roundrects_shader_load(gfx, &context->shaders.roundrect, result); break;
 							case MUG_OBJECT_TEXTURE_2D: mugGL_2Dtextures_shader_load(gfx, &context->shaders.textures2D, result); break;
+							case MUG_OBJECT_TEXTURE_2D_ARRAY: mugGL_2Dtexturearr_shader_load(gfx, &context->shaders.texturearrays2D, result); break;
 						}
 					}
 
@@ -14586,6 +14918,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 							case MUG_OBJECT_SQUIRCLE: mugGL_squircles_fill(buf); break;
 							case MUG_OBJECT_ROUND_RECT: mugGL_roundrects_fill(buf); break;
 							case MUG_OBJECT_TEXTURE_2D: mugGL_2Dtextures_fill(buf); break;
+							case MUG_OBJECT_TEXTURE_2D_ARRAY: mugGL_2Dtexturearr_fill(buf); break;
 						}
 						return MUG_SUCCESS;
 					}
@@ -14705,6 +15038,25 @@ All mu libraries included in muSDK have name functions to convert some of their 
 					glClearDepth(0.0);
 					// Clear screen color and depth
 					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				}
+
+				// Maximums
+				uint32_m mugGL_max(mugMax max) {
+					GLint gi = 0;
+
+					switch (max) {
+						default: return 0; break;
+
+						// Texture
+						case MUG_MAX_TEXTURE_WIDTH_HEIGHT: {
+							glGetIntegerv(GL_MAX_TEXTURE_SIZE, &gi);
+							return gi;
+						} break;
+						case MUG_MAX_TEXTURE_DEPTH: {
+							glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &gi);
+							return gi;
+						} break;
+					}
 				}
 
 		#endif /* MU_SUPPORT_OPENGL */
@@ -15161,6 +15513,30 @@ All mu libraries included in muSDK have name functions to convert some of their 
 				if (context) {} if (tex) {}
 			}
 
+		/* Misc. */
+
+			// Max stuff
+			MUDEF uint32_m mug_max(mugContext* context, muGraphic gfx, mugMax max) {
+				// Get inner graphic handle
+				mug_Graphic* igfx = (mug_Graphic*)gfx;
+
+				// Do things based on graphic system
+				switch (igfx->system) {
+					default: return 0; break;
+
+					// Opengl
+					#ifdef MU_SUPPORT_OPENGL
+						case MU_GRAPHIC_OPENGL: {
+							mugGraphicGL_bind(igfx);
+							return mugGL_max(max);
+						} break;
+					#endif
+				}
+
+				// To avoid unused parameter warnings
+				if (context) {} if (max) {}
+			}
+
 		/* Result */
 
 			// Fatal-testing function
@@ -15335,7 +15711,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 	#endif /* MUSDK_MUG */
 
 	// mutt
-	// https://github.com/Muukid/muTrueType/tree/f530d14be2199adbef1324b08a3b830c7ee67275
+	// https://github.com/Muukid/muTrueType/tree/f75d153134eea147105b9de27dba475ddeb0866d
 	#ifdef MUSDK_MUTT
 	#define MUTT_IMPLEMENTATION
 
@@ -17487,6 +17863,10 @@ All mu libraries included in muSDK have name functions to convert some of their 
 						if (test_val < header->x_min || test_val > header->x_max) {
 							res = MUTT_INVALID_GLYF_SIMPLE_X_COORD;
 						}
+						// - Verify that the point is within FUnit range
+						if (test_val < -16384 || test_val > 16383) {
+							return MUTT_INVALID_GLYF_SIMPLE_X_COORD_FUNITS;
+						}
 						// - Consider it with currently calculated x min/max
 						if ((test_val < x_min) || (pi == 0)) {
 							x_min = test_val;
@@ -17538,6 +17918,10 @@ All mu libraries included in muSDK have name functions to convert some of their 
 						// - Verify that the point is within range
 						if (test_val < header->y_min || test_val > header->y_max) {
 							res = MUTT_INVALID_GLYF_SIMPLE_Y_COORD;
+						}
+						// - Verify that the point is within FUnit range
+						if (test_val < -16384 || test_val > 16383) {
+							return MUTT_INVALID_GLYF_SIMPLE_Y_COORD_FUNITS;
 						}
 						// - Consider it with currently calculated y min/max values
 						if ((test_val < y_min) || (pi == 0)) {
@@ -17602,6 +17986,214 @@ All mu libraries included in muSDK have name functions to convert some of their 
 						// maxPoints
 						+(font->maxp->max_points*sizeof(muttGlyphPoint))
 					;
+				}
+
+				// Calculates the x/y min/max for the given simple glyph
+				MUDEF muttResult mutt_simple_glyph_min_max(muttFont* font, muttGlyphHeader* header) {
+					// Verify length for endPtsOfContours and instructionLength
+					uint64_m req = (((uint32_m)header->number_of_contours)*2) + 2;
+					if (header->length < req) {
+						return MUTT_INVALID_GLYF_SIMPLE_LENGTH;
+					}
+
+					// Progressive glyph data:
+					// (Move to endPtsOfContours[numContours-1])
+					muByte* data = header->data + (req-4);
+					// Read last element of endPtsOfContours
+					uint16_m num_points = MU_RBEU16(data);
+					data += 2;
+					// Verify it for number of points
+					if (num_points++ == 0xFFFF) {
+						return MUTT_INVALID_GLYF_SIMPLE_END_PTS_OF_CONTOURS;
+					}
+					if (num_points > font->maxp->max_points) {
+						return MUTT_INVALID_GLYF_SIMPLE_POINT_COUNT;
+					}
+
+					// Read instructionLength
+					uint16_m instruction_len = MU_RBEU16(data);
+					data += 2;
+					// Verify instructions
+					req += instruction_len;
+					if (header->length < req) {
+						return MUTT_INVALID_GLYF_SIMPLE_LENGTH;
+					}
+					// Move past instructions
+					data += instruction_len;
+
+					// Allocate flags
+					uint8_m* flags = (uint8_m*)mu_malloc(num_points);
+					if (!flags) {
+						return MUTT_FAILED_MALLOC;
+					}
+
+					// Loop through each flag
+					uint16_m pi = 0;
+					while (pi < num_points) {
+						// Verify length for this flag
+						if (header->length < ++req) {
+							mu_free(flags);
+							return MUTT_INVALID_GLYF_SIMPLE_LENGTH;
+						}
+
+						// Get flag
+						uint8_m flag = flags[pi] = *data;
+
+						// Get implied length of x- and y-coordinates based on flag
+						uint8_m coord_length = 0;
+						// - x
+						if (flag & MUTT_X_SHORT_VECTOR) {
+							// 1-byte x-coordinate
+							coord_length += 1;
+						} else if (!(flag & MUTT_X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR)) {
+							// 2-byte x-coordinate
+							coord_length += 2;
+						}
+						// - y
+						if (flag & MUTT_Y_SHORT_VECTOR) {
+							// 1-byte y-coordinate
+							coord_length += 1;
+						} else if (!(flag & MUTT_Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR)) {
+							// 2-byte y-coordinate
+							coord_length += 2;
+						}
+
+						// Verify length based on coord length
+						req += coord_length;
+						if (header->length < req) {
+							mu_free(flags);
+							return MUTT_INVALID_GLYF_SIMPLE_LENGTH;
+						}
+
+						// Increment past this point/flag
+						++pi;
+						++data;
+
+						// Handle repeating flags:
+						if (flag & MUTT_REPEAT_FLAG) {
+							// Verify length for next flag
+							if (header->length < ++req) {
+								mu_free(flags);
+								return MUTT_INVALID_GLYF_SIMPLE_LENGTH;
+							}
+
+							// Get next flag as length
+							uint8_m next = *data++;
+							// If next is 0, we don't repeat at all, and pretend
+							// like this never happened
+							if (next == 0) {
+								continue;
+							}
+
+							// Verify length for repeated coordinate flags
+							req += ((uint32_m)coord_length) * ((uint32_m)(next-1));
+							if (header->length < req) {
+								mu_free(flags);
+								return MUTT_INVALID_GLYF_SIMPLE_LENGTH;
+							}
+
+							// Go through each repeat flag and copy it down
+							for (uint8_m r = 0; r < next && pi < num_points; ++r) {
+								flags[pi++] = flag;
+							}
+						}
+					}
+
+					// Loop through each x-coordinate
+					pi = 0;
+					int16_m prev_x = 0;
+					while (pi < num_points) {
+						// Get x-coordinate
+						int16_m x;
+						if (flags[pi] & MUTT_X_SHORT_VECTOR) {
+							// 1-byte
+							if (flags[pi] & MUTT_X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR) {
+								// Positive
+								x = (int16_m)*data++;
+							} else {
+								// Negative
+								x = -((int16_m)*data++);
+							}
+						} else {
+							if (flags[pi] & MUTT_X_IS_SAME_OR_POSITIVE_X_SHORT_VECTOR) {
+								// Repeated x-coordinate
+								++pi;
+								continue;
+							} else {
+								// 2-bytes, signed
+								x = MU_RBES16(data);
+								data += 2;
+							}
+						}
+
+						// Add as vector to prior value
+						int32_m test_val = prev_x + x;
+						// Verify FUnit range
+						if (test_val < -16384 || test_val > 16383) {
+							mu_free(flags);
+							return MUTT_INVALID_GLYF_SIMPLE_X_COORD_FUNITS;
+						}
+						// Consider it with currently calculated x min/max
+						if ((test_val < header->x_min) || (pi == 0)) {
+							header->x_min = test_val;
+						}
+						if ((test_val > header->x_max) || (pi == 0)) {
+							header->x_max = test_val;
+						}
+						// Set previous x as current x
+						prev_x = test_val;
+						++pi;
+					}
+
+					// Loop through each y-coordinate
+					pi = 0;
+					int16_m prev_y = 0;
+					while (pi < num_points) {
+						// Get y-coordinate
+						int16_m y;
+						if (flags[pi] & MUTT_Y_SHORT_VECTOR) {
+							// 1-byte
+							if (flags[pi] & MUTT_Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR) {
+								// Positive
+								y = (int16_m)*data++;
+							} else {
+								// Negative
+								y = -((int16_m)*data++);
+							}
+						} else {
+							if (flags[pi] & MUTT_Y_IS_SAME_OR_POSITIVE_Y_SHORT_VECTOR) {
+								// Repeated y-coordinate
+								++pi;
+								continue;
+							} else {
+								// 2 bytes, signed
+								y = MU_RBES16(data);
+								data += 2;
+							}
+						}
+
+						// Add as vector to prior value
+						int32_m test_val = prev_y + y;
+						// Verify FUnit range
+						if (test_val < -16384 || test_val > 16383) {
+							mu_free(flags);
+							return MUTT_INVALID_GLYF_SIMPLE_Y_COORD_FUNITS;
+						}
+						// Consider it with currently calculated y min/max
+						if ((test_val < header->y_min) || (pi == 0)) {
+							header->y_min = test_val;
+						}
+						if ((test_val > header->y_max) || (pi == 0)) {
+							header->y_max = test_val;
+						}
+						// Set previous y as current y
+						prev_y = test_val;
+						++pi;
+					}
+
+					// Deallocate flags
+					mu_free(flags);
+					return MUTT_SUCCESS; if (font) {}
 				}
 
 				// Fills in (or calculates memory needed for) "muttCompositeGlyph" struct
@@ -18640,7 +19232,11 @@ All mu libraries included in muSDK have name functions to convert some of their 
 
 							// Set pixel to whether or not we're in glyph
 							// Winding == 0 means in the glyph, and vice versa
-							bitmap->pixels[hpix_offset+(w*adv)] = (winding==0) ?(out) :(in);
+							if (winding == 0) {
+								mu_memset(&bitmap->pixels[hpix_offset+(w*adv)], out, adv);
+							} else {
+								mu_memset(&bitmap->pixels[hpix_offset+(w*adv)], in, adv);
+							}
 						}
 					}
 
@@ -18728,7 +19324,10 @@ All mu libraries included in muSDK have name functions to convert some of their 
 
 							// Calculate pixel color based on how much the pixel is in
 							// \left(a\right)\left(m_{1}-m_{0}\right)+m_{0}
-							bitmap->pixels[hpix_offset+(w*adv)] = (in_per * (in-out)) + out;
+							for (uint8_m a = 0; a < adv-1; ++a) {
+								bitmap->pixels[hpix_offset+(w*adv)+a] = 255;
+							}
+							bitmap->pixels[hpix_offset+(w*adv)+(adv-1)] = (in_per * (in-out)) + out;
 						}
 					}
 				}
@@ -18824,6 +19423,34 @@ All mu libraries included in muSDK have name functions to convert some of their 
 				// FUnits to pixel-units
 				MUDEF float mutt_funits_to_punits(muttFont* font, float funits, float point_size, float ppi) {
 					return point_size * funits * ppi / (72.f * font->head->units_per_em);
+				}
+
+				// Gets the ascent/descent/lsb/advance-width of an rglyph for a glyph ID
+				MUDEF void mutt_rglyph_metrics(muttFont* font, muttGlyphHeader* header, uint16_m glyph_id, muttRGlyph* rglyph, float point_size, float ppi) {
+					// Offsets
+					float py = -mutt_funits_to_punits(font, header->y_min, point_size, ppi) + 1.f;
+
+					// Ascender + Descender
+					rglyph->ascender  = py + mutt_funits_to_punits(font, font->hhea->ascender , point_size, ppi);
+					rglyph->descender = py + mutt_funits_to_punits(font, font->hhea->descender, point_size, ppi);
+
+					// Left-side bearing + Advance width
+					if (glyph_id >= font->hhea->number_of_hmetrics) {
+						// lsb is in lsb array:
+						rglyph->lsb = mutt_funits_to_punits(font, font->hmtx->left_side_bearings[glyph_id - font->hhea->number_of_hmetrics], point_size, ppi);
+						// Advance width is last advance width
+						if (font->hhea->number_of_hmetrics > 0) {
+							rglyph->advance_width = mutt_funits_to_punits(font, font->hmtx->hmetrics[font->hhea->number_of_hmetrics - 1].advance_width, point_size, ppi);
+						} else {
+							// Defaulting on 0 for advance width with no hmetrics specified
+							rglyph->advance_width = 0;
+						}
+					} else {
+						// lsb is in hmetrics array:
+						rglyph->lsb = mutt_funits_to_punits(font, font->hmtx->hmetrics[glyph_id].lsb, point_size, ppi);
+						// As well as advance width:
+						rglyph->advance_width = mutt_funits_to_punits(font, font->hmtx->hmetrics[glyph_id].advance_width, point_size, ppi);
+					}
 				}
 
 				/* Simple */
@@ -19231,7 +19858,9 @@ All mu libraries included in muSDK have name functions to convert some of their 
 
 					// Converts all TrueType-calculated coordinates from a composite-converted rglyph
 					// to pixel coordinates
-					void mutt_composite_rglyph_coords(muttFont* font, muttR_CompProg* prog, muttRGlyph* rglyph, float point_size, float ppi) {
+					// OR, if convert_to_punits is false, it just calculates the x/y min/max within
+					// prog
+					muttResult mutt_composite_rglyph_coords(muttFont* font, muttR_CompProg* prog, muttRGlyph* rglyph, float point_size, float ppi, muBool convert_to_punits) {
 						// Calculate x/y min/max values
 						prog->x_min = prog->x_max = rglyph->points[0].x;
 						prog->y_min = prog->y_max = rglyph->points[0].y;
@@ -19252,6 +19881,21 @@ All mu libraries included in muSDK have name functions to convert some of their 
 							}
 						}
 
+						// Ensure FUnit range
+						if (prog->x_min < -16384.f || prog->x_min > 16383.f ||
+							prog->x_max < -16384.f || prog->x_max > 16383.f) {
+							return MUTT_INVALID_GLYF_COMPOSITE_X_COORD_FUNITS;
+						}
+						if (prog->y_min < -16384.f || prog->y_min > 16383.f ||
+							prog->y_max < -16384.f || prog->y_max > 16383.f) {
+							return MUTT_INVALID_GLYF_COMPOSITE_Y_COORD_FUNITS;
+						}
+
+						// Finish here if conversion to pixel-units is not being performed
+						if (!convert_to_punits) {
+							return MUTT_SUCCESS;
+						}
+
 						// Much of this code is considerably similar to mutt_simple_rglyph
 
 						// Calculate point offsets based on glyph's min/max values
@@ -19268,6 +19912,8 @@ All mu libraries included in muSDK have name functions to convert some of their 
 						// Calculate x/y max
 						rglyph->x_max = px + mutt_funits_to_punits(font, prog->x_max, point_size, ppi);
 						rglyph->y_max = py + mutt_funits_to_punits(font, prog->y_max, point_size, ppi);
+
+						return MUTT_SUCCESS;
 					}
 
 					// Composite glyph -> raster glyph
@@ -19302,11 +19948,93 @@ All mu libraries included in muSDK have name functions to convert some of their 
 						}
 
 						// Convert collected TrueType coordinates to pixel coordinates
-						mutt_composite_rglyph_coords(font, &prog, rglyph, point_size, ppi);
+						res = mutt_composite_rglyph_coords(font, &prog, rglyph, point_size, ppi, MU_TRUE);
+						if (mutt_result_is_fatal(res)) {
+							mu_free(temp_simple_max);
+							return res;
+						}
 
 						// Free temp simple max memory
 						mu_free(temp_simple_max);
 						return res; if (header) {}
+					}
+
+					// X/Y min/max composite calculator
+					MUDEF muttResult mutt_composite_glyph_min_max(muttFont* font, muttGlyphHeader* header) {
+						muttResult res = MUTT_SUCCESS;
+
+						// Unfortunately, there's no realistic way to do this without
+						// doing the usual allocation as far as I'm aware.
+
+						// Much of this code is considerably similar to mutt_composite_rglyph
+
+						// Allocate composite memory
+						muByte* composite_mem = (muByte*)mu_malloc(mutt_composite_rglyph_max(font));
+						if (!composite_mem) {
+							return MUTT_FAILED_MALLOC;
+						}
+						// Allocate temp simple max memory
+						muByte* temp_simple_max = (muByte*)mu_malloc(mutt_simple_glyph_max_size(font));
+						if (!temp_simple_max) {
+							mu_free(composite_mem);
+							return MUTT_FAILED_MALLOC;
+						}
+
+						// Set rglyph data
+						muttRGlyph rglyph;
+						rglyph.contour_ends = (uint16_m*)composite_mem;
+						rglyph.points = (muttRPoint*)((composite_mem + (((uint32_m)font->maxp->max_composite_contours)*2)));
+
+						// Initialize CompProg
+						muttR_CompProg prog;
+						muttR_CompProg_init(&prog, &rglyph, temp_simple_max, font);
+
+						// Loop through each component
+						uint32_m component_count = 0;
+						muBool no_more = MU_FALSE;
+						muByte* bprog = header->data;
+						while (!no_more) {
+							// Verify incremented component count
+							if (++component_count > font->maxp->max_component_elements) {
+								return MUTT_INVALID_RGLYPH_COMPOSITE_COMPONENT_COUNT;
+							}
+
+							// Get individual component
+							muttComponentGlyph this_component;
+							res = mutt_composite_component(font, header, &bprog, &this_component, &no_more);
+							if (mutt_result_is_fatal(res)) {
+								mu_free(temp_simple_max);
+								mu_free(composite_mem);
+								return res;
+							}
+
+							// Process component
+							res = mutt_component_rglyph(font, &prog, &this_component, 1);
+							if (mutt_result_is_fatal(res)) {
+								mu_free(temp_simple_max);
+								mu_free(composite_mem);
+								return res;
+							}
+						}
+
+						// Calculate x/y min/max
+						res = mutt_composite_rglyph_coords(font, &prog, &rglyph, 0.f, 0.f, MU_FALSE);
+						if (mutt_result_is_fatal(res)) {
+							mu_free(temp_simple_max);
+							mu_free(composite_mem);
+							return res;
+						}
+
+						// Set x/y min/max values
+						header->x_min = mu_ceilf(prog.x_min);
+						header->y_min = mu_ceilf(prog.y_min);
+						header->x_max = mu_ceilf(prog.x_max);
+						header->y_max = mu_ceilf(prog.y_max);
+
+						// Free and return
+						mu_free(temp_simple_max);
+						mu_free(composite_mem);
+						return res;
 					}
 
 					// Memory maximum
@@ -19402,6 +20130,14 @@ All mu libraries included in muSDK have name functions to convert some of their 
 						return res;
 					}
 
+					// Glyph header x/y min/max -> raster x/y max
+					MUDEF void mutt_funits_punits_min_max(muttFont* font, muttGlyphHeader* header, muttRGlyph* rglyph, float point_size, float ppi) {
+						rglyph->x_max = (-mutt_funits_to_punits(font, header->x_min, point_size, ppi) + 1.f)
+							+ mutt_funits_to_punits(font, header->x_max, point_size, ppi);
+						rglyph->y_max = (-mutt_funits_to_punits(font, header->y_min, point_size, ppi) + 1.f)
+							+ mutt_funits_to_punits(font, header->y_max, point_size, ppi);
+					}
+
 					MUDEF uint32_m mutt_header_rglyph_max(muttFont* font) {
 						// Simple:
 						uint32_m sim = mutt_simple_glyph_max_size(font) + mutt_simple_rglyph_max(font);
@@ -19493,6 +20229,10 @@ All mu libraries included in muSDK have name functions to convert some of their 
 					case MUTT_INVALID_GLYF_COMPOSITE_COMPONENT_COUNT: return "MUTT_INVALID_GLYF_COMPOSITE_COMPONENT_COUNT"; break;
 					case MUTT_INVALID_GLYF_COMPOSITE_GLYPH_INDEX: return "MUTT_INVALID_GLYF_COMPOSITE_GLYPH_INDEX"; break;
 					case MUTT_INVALID_GLYF_COMPOSITE_FLAGS: return "MUTT_INVALID_GLYF_COMPOSITE_FLAGS"; break;
+					case MUTT_INVALID_GLYF_SIMPLE_X_COORD_FUNITS: return "MUTT_INVALID_GLYF_SIMPLE_X_COORD_FUNITS"; break;
+					case MUTT_INVALID_GLYF_SIMPLE_Y_COORD_FUNITS: return "MUTT_INVALID_GLYF_SIMPLE_Y_COORD_FUNITS"; break;
+					case MUTT_INVALID_GLYF_COMPOSITE_X_COORD_FUNITS: return "MUTT_INVALID_GLYF_COMPOSITE_X_COORD_FUNITS"; break;
+					case MUTT_INVALID_GLYF_COMPOSITE_Y_COORD_FUNITS: return "MUTT_INVALID_GLYF_COMPOSITE_Y_COORD_FUNITS"; break;
 					case MUTT_INVALID_CMAP_LENGTH: return "MUTT_INVALID_CMAP_LENGTH"; break;
 					case MUTT_INVALID_CMAP_VERSION: return "MUTT_INVALID_CMAP_VERSION"; break;
 					case MUTT_INVALID_CMAP_ENCODING_RECORD_OFFSET: return "MUTT_INVALID_CMAP_ENCODING_RECORD_OFFSET"; break;
