@@ -59,4 +59,4 @@ muSDK has support for [muGraphics v1.0.0](https://github.com/Muukid/muGraphics/r
 
 ## muTrueType
 
-muSDK has support for muTrueType ([commit f75d153](https://github.com/Muukid/muTrueType/tree/f75d153134eea147105b9de27dba475ddeb0866d)). The macro to define it is `MUSDK_MUTT`.
+muSDK has support for muTrueType ([commit 178b8fe](https://github.com/Muukid/muTrueType/tree/178b8fe6e73c5e1c51badf35de0a0090a62bf3d5)). The macro to define it is `MUSDK_MUTT`.

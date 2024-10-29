@@ -5,7 +5,7 @@
 DEMO NAME:          hello_world.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-09-30
-LAST UPDATED:       2024-09-30
+LAST UPDATED:       2024-10-29
 
 ============================================================
                         DEMO PURPOSE
@@ -391,7 +391,7 @@ More explicit license information at the end of file.
 
 		// Deallocate and return
 		free(pixels);
-		printf("Successfully rasterizated characters\n\n");
+		printf("Successfully rasterized characters\n\n");
 		return MU_TRUE;
 	}
 
@@ -496,11 +496,17 @@ More explicit license information at the end of file.
 			arr_rects[gc].tex_dim[0] = arr_rects[gc].tex_dim[1] = 1.f;
 
 			// Increment X by advance width
-			x += chars[c].rglyph.advance_width;
+			// (If it's the last point, factor in lsb)
+			if (i+1 < text_length-1) {
+				x += chars[c].rglyph.advance_width;
+			} else {
+				x += chars[c].rglyph.x_max + chars[c].rglyph.lsb;
+			}
 		}
 
-		// Calculate total text width and height
-		text_width = graphical_chars[num_arr_rects-1].r->center.pos[0] + (graphical_chars[num_arr_rects-1].r->dim[0] / 2.f);
+		// Calculate total text width
+		// I get best results when I add first char's lsb here
+		text_width = x + chars[0].rglyph.lsb;
 
 		// Print information about completed graphical layout
 		printf("Set positions of all %" PRIu32 " graphical characters\n", num_arr_rects);

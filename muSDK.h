@@ -2840,7 +2840,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 	// @ATTENTION
 
 	// @DOCLINE ## muTrueType
-	// @DOCLINE muSDK has support for muTrueType ([commit f75d153](https://github.com/Muukid/muTrueType/tree/f75d153134eea147105b9de27dba475ddeb0866d)). The macro to define it is `MUSDK_MUTT`.
+	// @DOCLINE muSDK has support for muTrueType ([commit 178b8fe](https://github.com/Muukid/muTrueType/tree/178b8fe6e73c5e1c51badf35de0a0090a62bf3d5)). The macro to define it is `MUSDK_MUTT`.
 	// @IGNORE
 	#ifdef MUSDK_MUTT
 		// Names
@@ -3667,7 +3667,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 					#define MUTT_LOAD_HMTX 0x00000008
 					// @DOCLINE * [0x00000010] `MUTT_LOAD_LOCA` - load the [loca table](#loca-table).
 					#define MUTT_LOAD_LOCA 0x00000010
-					// @DOCLINE * [0x00000020] `MUTT_LOAD_POST` - load the [post table](#post-table).
+					// @DOCLINE * [0x00000020] `MUTT_LOAD_POST` - load the post table.
 					#define MUTT_LOAD_POST 0x00000020
 					// @DOCLINE * [0x00000040] `MUTT_LOAD_NAME` - load the [name table](#name-table).
 					#define MUTT_LOAD_NAME 0x00000040
@@ -4377,6 +4377,8 @@ All mu libraries included in muSDK have name functions to convert some of their 
 							int16_m id_delta;
 							// @DOCLINE * `@NLFT id_range_offset` - equivalent to the value for the given segment in the "idRangeOffset" array in the cmap format 4 subtable, but divided by 2 and with (`muttCmap4->seg_count` - the index for the given segment) subtracted; the start code index offset into `muttCmap4->glyph_ids`.
 							uint16_m id_range_offset;
+							// @DOCLINE * `@NLFT id_range_offset_orig` - equivalent to the value for the given segment in the "idRangeOffset" array in the cmap format 4 subtable.
+							uint16_m id_range_offset_orig;
 							// @DOCLINE * `@NLFT start_glyph_id` - the calculated first glyph ID of the segment. This is not checked to be a valid glyph ID, and is used when converting glyph IDs into codepoints.
 							uint16_m start_glyph_id;
 							// @DOCLINE * `@NLFT end_glyph_id` - the calculated last glyph ID of the segment. This is not checked to be a valid glyph ID, and is used when converting glyph IDs into codepoints.
@@ -15727,7 +15729,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 	#endif /* MUSDK_MUG */
 
 	// mutt
-	// https://github.com/Muukid/muTrueType/tree/f75d153134eea147105b9de27dba475ddeb0866d
+	// https://github.com/Muukid/muTrueType/tree/178b8fe6e73c5e1c51badf35de0a0090a62bf3d5
 	#ifdef MUSDK_MUTT
 	#define MUTT_IMPLEMENTATION
 
@@ -16684,7 +16686,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 							ps->id_delta = MU_RBES16(id_delta);
 
 							// idRangeOffset
-							ps->id_range_offset = MU_RBEU16(id_range_offset);
+							ps->id_range_offset = ps->id_range_offset_orig = MU_RBEU16(id_range_offset);
 							// Further verification is only cared about if idRangeOffset is not 0,
 							// since logic with it is only performed under that circumstance
 							if (ps->id_range_offset != 0) {
@@ -16721,7 +16723,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 									ps->end_glyph_id = mutt_id_delta(ps->end_glyph_id, ps->id_delta);
 								}
 							}
-							// If idRangeOffset IS 0, calculaing starting/ending glyph ID is just idDelta
+							// If idRangeOffset IS 0, calculating starting/ending glyph ID is just idDelta
 							else {
 								ps->start_glyph_id = mutt_id_delta(ps->start_code, ps->id_delta);
 								ps->end_glyph_id = mutt_id_delta(ps->end_code, ps->id_delta);
@@ -16767,7 +16769,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 							muttCmap4Segment* seg = &f4->seg[s];
 
 							// If idRangeOffset is 0, we're only performing delta logic
-							if (seg->id_range_offset == 0) {
+							if (seg->id_range_offset_orig == 0) {
 								glyph = mutt_id_delta(codepoint, seg->id_delta);
 							}
 							// If idRangeOffset isn't 0, we must index into glyphIdArray
