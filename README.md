@@ -2,7 +2,7 @@
 
 # muSDK v1.0.0
 
-muSDK is a public domain* single-file C library for general high-level software development. Its header is automatically defined upon inclusion if not already included (`MUSDK_H`), and the source code is defined if `MUSDK_IMPLEMENTATION` is defined, following the internal structure of:
+muSDK is a public domain single-file C library for general high-level software development. Its header is automatically defined upon inclusion if not already included (`MUSDK_H`), and the source code is defined if `MUSDK_IMPLEMENTATION` is defined, following the internal structure of:
 
 ```c
 #ifndef MUSDK_H
@@ -24,11 +24,23 @@ Therefore, a standard inclusion of the file to get all automatic functionality l
 
 More information about the general structure of a mu library is provided at [the mu library information GitHub repository](https://github.com/Muukid/mu-library-information).
 
-Clarification on the asterik next to "public domain" can be found in the [licensing section](#licensing).
+# Demos
+
+Demos are designed for muSDK to both test its functionality and to allow users to get the basic idea of the structure of the library quickly without having to read the documentation in full. These demos are available in the `demos` folder.
+
+## Demo resources
+
+The demos use other files to operate correctly when running as a compiled executable. These other files can be found in the `resources` folder within `demos`, and this folder is expected to be in the same location that the program is executing from. For example, if a user compiles a demo into `main.exe`, and decides to run it, the `resources` folder from `demos` should be in the same directory as `main.exe`.
+
+The resources' licenses may differ from the licensing of muSDK itself; see the [license section that covers demo resources](#licensing-of-demo-resources).
 
 # Licensing
 
-muSDK is licensed under public domain or MIT, whichever you prefer, as well as [Apache 2.0 due to OpenGL's licensing](https://github.com/KhronosGroup/OpenGL-Registry/issues/376#issuecomment-596187053).
+muSDK is licensed under public domain or MIT, whichever you prefer, as well as (technically) [Apache 2.0 due to OpenGL's licensing](https://github.com/KhronosGroup/OpenGL-Registry/issues/376#issuecomment-596187053).
+
+## Licensing of demo resources
+
+The resources used by the demos may differ from licensing of the demos themselves; in that context, their licenses apply, with licensing of each file available as a separate file with the same name, but with no filename extension.
 
 # Libraries
 
@@ -43,7 +55,7 @@ All mu libraries included in muSDK have name functions to convert some of their 
 
 ## muGraphics
 
-muSDK has support for muGraphics ([commit e9b01a4](https://github.com/Muukid/muGraphics/tree/e9b01a4db2ac6067355394910a7bc8495682514e)). The macro to define it is `MUSDK_MUG`.
+muSDK has support for [muGraphics v1.0.0](https://github.com/Muukid/muGraphics/releases/tag/v1.0.0). The macro to define it is `MUSDK_MUG`.
 
 ## muTrueType
 
